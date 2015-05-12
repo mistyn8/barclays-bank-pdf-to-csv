@@ -163,23 +163,35 @@
   } // end of processPDFStatment()
 
   var payments = [
+    "Bill payment to",
+    "Payment to",
+    "Payment by cheque",
     "Debit card payment to",
-    "Direct debit to",
-    "Card Payment",
+    "Direct Debit to",
+    "Card Payment to",
+    "Transfer to",
     "Internet Banking transfer to",
     "On-line Banking bill payment to",
     "Commission charges",
     "Standing order to",
-    "Cash machine withdrawal"
+    "Cash Machine Withdrawal",
+    "Cash Withdrawal",
+    "Cashed cheque",
+    "Payment by cheque",
+    "Withdrawal at"
   ];
   var receipts = [
     "Direct credit from",
     "Debit card refund from",
     "Internet Banking transfer from",
     "Deposit", // NB: not sure this is a generic reference
-    "Refund from"
+    "Refund from",
+    "Received from",
+    "Receipt:",
+    "Transfer from"
   ];
-  var transactionsStart = 'Transactions in date order\\nDate\tDescription\tPayments\tReceipts\tBalance';
+  //var transactionsStart = 'Transactions in date order\\nDate\tDescription\tPayments\tReceipts\tBalance';
+  var transactionsStart = 'Money out\tMoney in\tBalance\\n';
   /*
   transaction ending patterns are:
   * Interim balance carried forward3,856.88 - used on first page when a day's transaction spill over to the second page
@@ -189,11 +201,16 @@
   */
   var paymentsMarkers = payments.join('|');
   var receiptsMarkers = receipts.join('|');
-  var optionalDateMarker = '(?:(\\d{1,2} [a-zA-z]{3})\t)?'; // some transactions are preceded by dates such as '7 Feb' or '21 Jul'
-  var amountMarker = '\t[\\d,]+\\.\\d\\d';
+  var optionalDateMarker = '(?:(\\d{1,2} [a-zA-z]{3})\\t)?'; // some transactions are preceded by dates such as '7 Feb' or '21 Jul'
+  //var amountMarker = '\t[\\d,]+\\.\\d\\d';
+  var amountMarker = '\\s*[\\d,]+\\.\\d\\d';
+  
   var trailingBalanceMarker = '(?:[\\d,]+\\.\\d\\d)?'; // some transactions are followed by balances that can interfere a subsequent date e.g. 'Direct credit from G Kirschner Ref:-KirschnerBooking306.004,109.18' followed by '7 FebDebit card payment...'
-  var transactionSeparator = new RegExp(optionalDateMarker+'(('+paymentsMarkers+'|'+receiptsMarkers+').+?)('+amountMarker+')'+trailingBalanceMarker,'g');
-  var totalsMarker = new RegExp('Total payments - incl\\.\\\\ncommission & interest('+amountMarker+').+?Total receipts('+amountMarker+')');
+  var transactionSeparator = new RegExp(optionalDateMarker+'(('+paymentsMarkers+'|'+receiptsMarkers+').+?)\t('+amountMarker+')'+trailingBalanceMarker,'g');
+  //var totalsMarker = new RegExp('Total payments - incl\\.\\\\ncommission & interest('+amountMarker+').+?Total receipts('+amountMarker+')');
+  var totalsMarker = new RegExp('\\\\nMoney in[\\s\xa3]*('+amountMarker+')\\\\nMoney out[\\s\xa3]*('+amountMarker+')');
+  
+  //\nMoney in  £5,339.02\nMoney out  £3,287.70\n
   //console.info('transaction separator',transactionSeparator);
 
   function processStatement(text, pageNum) {
@@ -203,8 +220,8 @@
       var totals = text.match(totalsMarker);
       if(totals) {
         // convert strings such as '10,271.17' to 10271.17
-        totalPaymentsFromStatement = -parseFloat(totals[1].replace(',','')).toFixed(2);
-        totalReceiptsFromStatement = parseFloat(totals[2].replace(',','')).toFixed(2);
+        totalPaymentsFromStatement = -parseFloat(totals[2].replace(',','')).toFixed(2);
+        totalReceiptsFromStatement = parseFloat(totals[1].replace(',','')).toFixed(2);
       }
     }
     // extract statement lines
